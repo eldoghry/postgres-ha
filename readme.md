@@ -12,12 +12,12 @@ This repository provides a robust solution for achieving high availability (HA) 
   - [Required Firewall Ports](#required-firewall-ports)
   - [PostgreSQL](#postgresql)
   - [ETCD](#etcd)
-      - [Certificates](#certificates)
-      - [Running etcd](#running-etcd)
+    - [Certificates](#certificates)
+    - [Running etcd](#running-etcd)
   - [PostgreSQL and Patroni](#postgresql-and-patroni)
     - [patroni](#patroni)
       - [Verifying Our Postgres Cluster](#verifying-our-postgres-cluster)
-      - [Editing your pg\_hba after bootstrapping](#editing-your-pg_hba-after-bootstrapping)
+      - [Editing your pg_hba after bootstrapping](#editing-your-pg_hba-after-bootstrapping)
   - [HAProxy](#haproxy)
 - [Backup using pgbackrest toole](#backup-using-pgbackrest-toole)
 - [🔍 Useful Monitoring \& Debugging Commands](#-useful-monitoring--debugging-commands)
@@ -63,14 +63,15 @@ This project demonstrates how to set up a **highly available PostgreSQL cluster*
 
 Ensure the following ports are open between the nodes and allowed in any firewall configuration (UFW, iptables, security groups, etc.).
 
-|Port |Protocol| Used By |Purpose| Direction|
-|'5432'| TCP| PostgreSQL| Database client connections (internal use only)| Between Patroni nodes|
-|'8008'| TCP |Patroni| REST API for status/health/administration| Internal & optional external for |monitoring
-|'2379'| TCP| etcd| etcd client communication| From Patroni to etcd|
-|'2380'| TCP| etcd| etcd peer communication| Between etcd nodes|
-|'5000'| TCP| HAProxy| Public PostgreSQL access via HAProxy| From clients to HAProxy|
-|'7000'| TCP| HAProxy| HAProxy statistics and health monitor (optional)| From admins to HAProxy|
-|'22'| TCP| SSH| Remote access to servers (if applicable)| Admin access|
+| Port | Protocol | Used By    | Purpose                                          | Direction                    |
+| ---- | -------- | ---------- | ------------------------------------------------ | ---------------------------- |
+| 5432 | TCP      | PostgreSQL | Database client connections (internal use only)  | Between Patroni nodes        |
+| 8008 | TCP      | Patroni    | REST API for status/health/administration        | Internal & optional external |
+| 2379 | TCP      | etcd       | etcd client communication                        | From Patroni to etcd         |
+| 2380 | TCP      | etcd       | etcd peer communication                          | Between etcd nodes           |
+| 5000 | TCP      | HAProxy    | Public PostgreSQL access via HAProxy             | From clients to HAProxy      |
+| 7000 | TCP      | HAProxy    | HAProxy statistics and health monitor (optional) | From admins to HAProxy       |
+| 22   | TCP      | SSH        | Remote access to servers (if applicable)         | Admin access                 |
 
 ## PostgreSQL
 
