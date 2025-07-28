@@ -38,6 +38,8 @@ This project demonstrates how to set up a **highly available PostgreSQL cluster*
 
 ## Architecture
 
+![Architecture Diagram](https://drive.google.com/uc?export=view&id=1p8sOgkppoqKzrTcm-9a1aRvk3MX-jNsj)
+
 - **_Clients_**: Applications connect to the database through HAProxy.
 
 - **_HAProxy_**: Acts as a load balancer and a single entry point for database connections. It intelligently routes traffic to the current PostgreSQL primary, it can be one node or cluster later.
@@ -57,6 +59,7 @@ This project demonstrates how to set up a **highly available PostgreSQL cluster*
 192.168.137.100 # Node 1 [HAProxy + ETCD 1]
 192.168.137.101 # Node 2 [Primary DB + ETCD 2]
 192.168.137.102 # Node 3 [Standby DB + ETCD 3]
+192.168.137.103 # Node 4 [Backup vi pgbackrest]
 ```
 
 ## Required Firewall Ports
