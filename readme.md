@@ -19,11 +19,12 @@ This repository provides a robust solution for achieving high availability (HA) 
       - [Verifying Our Postgres Cluster](#verifying-our-postgres-cluster)
       - [Editing your pg_hba after bootstrapping](#editing-your-pg_hba-after-bootstrapping)
   - [HAProxy](#haproxy)
-- [Backup using pgbackrest toole](#backup-using-pgbackrest-toole)
-- [🔍 Useful Monitoring \& Debugging Commands](#-useful-monitoring--debugging-commands)
-  - [👁️ Patroni](#️-patroni)
-  - [🔐 etcd](#-etcd)
-  - [🧪 HAProxy](#-haproxy)
+  - [Backup using pgbackrest tool](#backup-using-pgbackrest-tool)
+  - [🔍 Useful Monitoring \& Debugging Commands](#-useful-monitoring--debugging-commands)
+    - [👁️ Patroni](#️-patroni)
+    - [🔐 etcd](#-etcd)
+    - [🧪 HAProxy](#-haproxy)
+  - [Referance](#referance)
 
 ## Introduction
 
@@ -832,13 +833,13 @@ sudo tail -f /var/log/syslog | grep haproxy
 
 You can check state of current environment using http://192.168.137.100:7000/stats
 
-# Backup using pgbackrest toole
+## Backup using pgbackrest tool
 
 Please check the [pgbackrest configuration](./backup/readme.md).
 
-# 🔍 Useful Monitoring & Debugging Commands
+## 🔍 Useful Monitoring & Debugging Commands
 
-## 👁️ Patroni
+### 👁️ Patroni
 
 | Task                            | Command                                                          |
 | ------------------------------- | ---------------------------------------------------------------- |
@@ -850,7 +851,7 @@ Please check the [pgbackrest configuration](./backup/readme.md).
 | Reload config                   | `sudo patronictl -c /etc/patroni/config.yml reload`              |
 | Monitor logs                    | `journalctl -u patroni -f`                                       |
 
-## 🔐 etcd
+### 🔐 etcd
 
 all command shoud start with
 
@@ -872,7 +873,7 @@ etcdctl --endpoints=https://127.0.0.1:2379 \
 | View logs             | journalctl -u etcd -f                 |
 | Check etcdctl version | etcdctl version                       |
 
-## 🧪 HAProxy
+### 🧪 HAProxy
 
 | Task                                 | Command                                                           |                |
 | ------------------------------------ | ----------------------------------------------------------------- | -------------- |
@@ -888,6 +889,6 @@ run the following to check round robin on reading transactions is working or not
 for i in {1..10}; do   PGPASSWORD=postgres psql -h 192.168.137.100 -p 5001 -U postgres -c "SELECT inet_server_addr();" cn; done
 ```
 
-#Referance
+## Referance
 
 - https://technotim.live/posts/postgresql-high-availability
