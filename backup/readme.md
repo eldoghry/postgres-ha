@@ -13,7 +13,7 @@ sudo apt install pgbackrest -y
 
 ```bash
 sudo useradd --system --home /var/lib/pgbackrest --shell /bin/bash backup
-sudo mkdir -p /var/lib/pgbackrest
+sudo mkdir -p /var/lib/pgbackrest/.ssh
 sudo chown backup:backup /var/lib/pgbackrest
 ```
 
@@ -30,6 +30,20 @@ Copy the key to Primary and Replica:
 ```bash
 ssh-copy-id -i /var/lib/pgbackrest/.ssh/id_rsa.pub backup@192.168.137.101
 ssh-copy-id -i /var/lib/pgbackrest/.ssh/id_rsa.pub backup@192.168.137.102
+```
+
+If ssh-copy-id command not work, transfer keys manually,
+from backup server copy content of public ssh key
+
+```bash
+sudo -u backup cat /var/lib/pgbackrest/.ssh/id_rsa.pub
+```
+
+then on database servers
+
+```bash
+# create new file and paste public key content here
+sudo -u backup nano /var/lib/pgbackrest/.ssh/authorized_keys
 ```
 
 Ensure SSH works:
