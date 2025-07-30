@@ -547,8 +547,6 @@ openssl genrsa -out server.key 2048 # private key
 openssl req -new -key server.key -out server.req # csr
 openssl req -x509 -key server.key -in server.req -out server.crt -days 7300 # generate cert, valid for 20 years
 
-
-
 # Move files to cert location
 sudo mv server.crt server.key server.req /var/lib/postgresql/ssl
 ```
@@ -623,6 +621,42 @@ make a dir for patroni
 sudo mkdir -p /etc/patroni/
 ```
 
+Patroni nodes talk to each other via rest api, we need to create pem for each node to secure connection, we will repeat the steps that we do before on
+
+on our local machine create the following one for primary-db and different one for standby-db
+
+```bash
+cat > temp.cnf <<EOF
+[ req ]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+[ req_distinguished_name ]
+[ v3_req ]
+subjectAltName = @alt_names
+[ alt_names ]
+IP.1 = 192.168.137.101
+IP.2 = 127.0.0.1
+EOF
+
+openssl genrsa -out primary-restapi.key 2048
+
+openssl req -new -key primary-restapi.key -out primary-restapi.csr \
+  -subj "/C=US/ST=YourState/L=YourCity/O=YourOrganization/OU=YourUnit/CN=primary-restapi" \
+  -config temp.cnf
+
+
+openssl x509 -req -in primary-restapi.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+  -out primary-restapi.crt -days 7300 -sha256 -extensions v3_req -extfile temp-2.cnf
+
+openssl x509 -in primary-restapi.crt -text -noout | grep -A1 "Subject Alternative Name"
+
+cat primary-restapi.crt primary-restapi.key > primary-restapi.pem
+
+openssl x509 -in primary-restapi.pem -text -noout | grep -A1 "Subject Alternative Name"
+```
+
+then move pem files, key and crt under /var/lib/postgresql/ssl and change permissions.
+
 Create a config file and edit
 
 ```bash
@@ -649,6 +683,7 @@ restapi:
   listen: 0.0.0.0:8008
   connect_address: 192.168.137.101:8008  # IP for node2's REST API
   certfile: /var/lib/postgresql/ssl/server.pem
+  cafile: /etc/etcd/ssl/ca.crt
 
 bootstrap:
   dcs:
@@ -711,6 +746,7 @@ restapi:
   listen: 0.0.0.0:8008
   connect_address: 192.168.137.102:8008  # IP for node3's REST API
   certfile: /var/lib/postgresql/ssl/server.pem
+  cafile: /etc/etcd/ssl/ca.crt
 
 bootstrap:
   dcs:
