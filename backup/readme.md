@@ -55,14 +55,6 @@ sudo chown pgbackrest:pgbackrest /etc/pgbackrest/pgbackrest.conf
 sudo rm -rf /etc/pgbackrest.conf
 ```
 
-Create backup location on Backup server
-
-```bash
-sudo mkdir -p /backup
-sudo chown pgbackrest:pgbackrest /backup
-sudo chmod 750 /backup
-```
-
 **On Database Servers**
 
 create logs and configuration files and directory and give permission for **_postgres_** user.
@@ -110,7 +102,7 @@ then on database servers
 sudo -u postgres nano /var/lib/postgresql/.ssh/authorized_keys
 ```
 
-and do the veris vice, you should generate ssh keys on databases servers and copy public keys on backup server keys under /home/pgbackrest/.ssh/authorized_keys
+and do the vers vice, you should generate ssh keys on databases servers and copy public keys on backup server keys under /home/pgbackrest/.ssh/authorized_keys
 
 so backup server can reach dbs servers, and dbs servers can reach backup servers
 
@@ -121,13 +113,24 @@ sudo -u backup ssh backup@192.168.137.101 hostname
 sudo -u backup ssh backup@192.168.137.102 hostname
 ```
 
+**Important Notes:**
+Make sure the remote ~/.ssh directory and authorized_keys file have proper permissions:
+
+```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Don't share your private key.
+
 ### 📁 Step 4: Create Backup Storage Directory
 
 On backup server:
 
 ```bash
-sudo mkdir -p /pgbackrest_repo
-sudo chown backup:backup /pgbackrest_repo
+sudo mkdir -p /backup
+sudo chown pgbackrest:pgbackrest /backup
+sudo chmod 750 /backup
 ```
 
 ### 📝 Step 5: Configure pgbackrest.conf on All Nodes
@@ -151,18 +154,18 @@ backup-standby=y         # <-- enforce replica-only backups
 [global:archive-push]
 compress-level=3
 
-[cn-db]
+[cn-db] # stanza name you can change it, should be same on all servers
 pg1-host=192.168.137.102 # <--- Replica comes first
-pg1-path=/var/lib/postgresql/16/main
+pg1-path=/var/lib/postgresql/data # database data location
 pg1-port=5432
 pg1-user=postgres
-pg1-host-user=backup
+pg1-host-user=postgres
 
 pg2-host=192.168.137.101 # Primary
-pg2-path=/var/lib/postgresql/16/main
+pg2-path=/var/lib/postgresql/data
 pg2-port=5432
 pg2-user=postgres
-pg2-host-user=backup
+pg2-host-user=postgres
 ```
 
 🧠 What happens with backup-standby=y
