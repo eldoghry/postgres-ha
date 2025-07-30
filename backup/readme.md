@@ -141,18 +141,22 @@ sudo chmod 750 /backup
 sudo nano /etc/pgbackrest/pgbackrest.conf
 ```
 
+Copy the following, please make sure to remove comments first to avoid errors later
+
 ```ini
 [global]
-repo1-path=/pgbackrest_repo
+repo1-path=/backup #backup location on backup server
+repo1-type=posix
 repo1-retention-full=7
 repo1-retention-diff=14
 start-fast=y
 log-level-console=info
 log-level-file=debug
-backup-standby=y         # <-- enforce replica-only backups
 
 [global:archive-push]
+compress-type=zst
 compress-level=3
+delta=y  # Optional: for smaller incremental backups
 
 [cn-db] # stanza name you can change it, should be same on all servers
 pg1-host=192.168.137.102 # <--- Replica comes first
@@ -166,6 +170,7 @@ pg2-path=/var/lib/postgresql/data
 pg2-port=5432
 pg2-user=postgres
 pg2-host-user=postgres
+backup-standby=y         # <-- enforce replica-only backups
 ```
 
 🧠 What happens with backup-standby=y
@@ -195,36 +200,26 @@ sudo nano /etc/pgbackrest/pgbackrest.conf
 
 ```ini
 [global]
-repo1-path=/var/lib/pgbackrest
+repo1-host=192.168.137.103
+repo1-host-user=pgbackrest
 start-fast=y
 log-level-console=info
 log-level-file=debug
 
 [cn-db]
-pg1-path=/var/lib/postgresql/16/main
+pg1-path=/var/lib/postgresql/data
 
 ```
 
-### 🪪 Step 6: Add pgbackrest Permissions to postgres
-
-On Primary and Replica:
-
-```bash
-sudo usermod -aG backup postgres
-```
-
-Give proper permissions to pgbackrest directory:
-
-```bash
-sudo mkdir -p /var/lib/pgbackrest
-sudo chown postgres:backup /var/lib/pgbackrest
-chmod 750 /var/lib/pgbackrest
-
-```
-
-### 🔄 Step 7: Enable Archiving in Patroni
+### 🔄 Step 6: Enable Archiving in Patroni
 
 Update patroni.yml on Primary and Replica:
+
+```bash
+sudo nano /etc/patroni/config.yml
+```
+
+and under postgresql section add the following
 
 ```yaml
 postgresql:
@@ -245,30 +240,75 @@ sudo patronictl -c /etc/patroni/config.yml reload cn-postgresql-cluster
 
 ```
 
-### 📦 Step 8: Create the Stanza
+### 📦 Step 7: Create the Stanza
 
 From Backup Server:
 
 ```bash
-sudo -u backup pgbackrest --stanza=cn-db stanza-create
+sudo -u pgbackrest pgbackrest --stanza=cn-db stanza-create
+```
+
+you should see response like the following
+
+```bash
+2025-07-30 08:59:46.489 P00   INFO: stanza-create command begin 2.56.0: --exec-id=4413-91bd72c4 --log-level-console=info --log-level-file=debug --pg1-host=192.168.137.102 --pg2-host=192.168.137.101 --pg1-host-user=postgres --pg2-host-user=postgres --pg1-path=/var/lib/postgresql/data --pg2-path=/var/lib/postgresql/data --pg1-port=5432 --pg2-port=5432 --pg1-user=postgres --pg2-user=postgres --repo1-path=/backup --stanza=cn-db
+2025-07-30 08:59:47.481 P00   INFO: stanza-create for stanza 'cn-db' on repo1
+2025-07-30 08:59:47.481 P00   INFO: stanza 'cn-db' already exists on repo1 and is valid
+2025-07-30 08:59:47.682 P00   INFO: stanza-create command end: completed successfully (1195ms)
 ```
 
 Check stanza info:
 
 ```bash
-sudo -u backup pgbackrest --stanza=cn-db info
+sudo -u pgbackrest pgbackrest --stanza=cn-db info
 
 ```
 
-### 🧪 Step 9: Run a Test Backup (from Replica)
+run a Test Backup (pull data from replica based on configuration pg1-host)
 
 ```bash
-sudo -u backup pgbackrest --stanza=cn-db backup
+sudo -u pgbackrest pgbackrest --stanza=cn-db --type=full backup
 ```
 
-Make sure the backup is stored under /pgbackrest_repo.
+show see output like that
 
-### 📅 Step 10: Schedule Cron Job on Backup Server
+```bash
+sudo -u pgbackrest pgbackrest --stanza=cn-db --type=full backup
+2025-07-30 12:44:35.199 P00   INFO: backup command begin 2.56.0: --backup-standby=y --exec-id=8071-93300c4c --log-level-console=info --log-level-file=debug --pg1-host=192.168.137.102 --pg2-host=192.168.137.101 --pg1-host-user=postgres --pg2-host-user=postgres --pg1-path=/var/lib/postgresql/data --pg2-path=/var/lib/postgresql/data --pg1-port=5432 --pg2-port=5432 --pg1-user=postgres --pg2-user=postgres --repo1-path=/backup --repo1-retention-diff=14 --repo1-retention-full=7 --repo1-type=posix --stanza=cn-db --start-fast --type=full
+2025-07-30 12:44:36.460 P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes
+2025-07-30 12:44:36.606 P00   INFO: backup start archive = 000000230000000100000019, lsn = 1/19000028
+2025-07-30 12:44:36.606 P00   INFO: wait for replay on the standby to reach 1/19000028
+2025-07-30 12:44:36.696 P00   INFO: replay on the standby reached 1/19000028
+2025-07-30 12:44:36.696 P00   INFO: check archive for segment 000000230000000100000019
+2025-07-30 12:45:17.839 P00   INFO: execute non-exclusive backup stop and wait for all WAL segments to archive2025-07-30 12:45:17.859 P00   INFO: backup stop archive = 00000023000000010000001A, lsn = 1/1A000088
+2025-07-30 12:45:17.870 P00   INFO: check archive for segment(s) 000000230000000100000019:00000023000000010000001A
+2025-07-30 12:45:18.594 P00   INFO: new backup label = 20250730-124436F
+2025-07-30 12:45:18.709 P00   INFO: full backup size = 1.6GB, file total = 2297
+2025-07-30 12:45:18.709 P00   INFO: backup command end: completed successfully (43511ms)
+2025-07-30 12:45:18.709 P00   INFO: expire command begin 2.56.0: --exec-id=8071-93300c4c --log-level-console=info --log-level-file=debug --repo1-path=/backup --repo1-retention-diff=14 --repo1-retention-full=7 --repo1-type=posix --stanza=cn-db
+2025-07-30 12:45:18.710 P00   INFO: expire command end: completed successfully (1ms)
+```
+
+```bash
+sudo -u pgbackrest pgbackrest --stanza=cn-db info
+################################################
+stanza: cn-db
+    status: ok
+    cipher: none
+
+    db (current)
+        wal archive min/max (16): 0000000100000000000000FB/00000023000000010000001A
+
+        full backup: 20250730-124436F
+            timestamp start/stop: 2025-07-30 12:44:36+00 / 2025-07-30 12:45:17+00
+            wal start/stop: 000000230000000100000019 / 00000023000000010000001A
+            database size: 1.6GB, database backup size: 1.6GB
+            repo1: backup set size: 228MB, backup size: 228MB
+```
+
+Make sure the backup is stored under /backup.
+
+### 📅 Step 8: Schedule Cron Job on Backup Server
 
 Edit the crontab:
 
