@@ -9,12 +9,76 @@ sudo apt update
 sudo apt install pgbackrest -y
 ```
 
-### 🧑‍🔧 Step 2: Create backup OS User on All Nodes
+make sure all nodes share the same pgbackrest versio
 
 ```bash
-sudo useradd --system --home /var/lib/pgbackrest --shell /bin/bash backup
-sudo mkdir -p /var/lib/pgbackrest/.ssh
-sudo chown backup:backup /var/lib/pgbackrest
+pgbackrest version # pgBackRest 2.56.0
+
+```
+
+optional if any node can't get latest stable version add the following
+Add the PostgreSQL APT Repository which provide latest stable version on pgbackrest
+
+```bash
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+sudo apt update
+
+# remove old version
+sudo apt remove pgbackrest
+
+# reinstall it again
+sudo apt install pgbackrest -y
+```
+
+or you can build it from the source please check pgbackrest documentation [pgbackrest build section](https://pgbackrest.org/user-guide.html#build)
+
+### 🧑‍🔧 Step 2: Create backup user on Backup server
+
+Create Custom user for pgbackrest operation
+
+```bash
+sudo adduser --disabled-password --gecos "" pgbackrest
+```
+
+create logs and configuration files and directory
+
+```bash
+sudo mkdir -p -m 770 /var/log/pgbackrest
+sudo chown pgbackrest:pgbackrest /var/log/pgbackrest
+sudo mkdir -p /etc/pgbackrest
+sudo mkdir -p /etc/pgbackrest/conf.d
+sudo touch /etc/pgbackrest/pgbackrest.conf
+sudo chmod 640 /etc/pgbackrest/pgbackrest.conf
+sudo chown pgbackrest:pgbackrest /etc/pgbackrest/pgbackrest.conf
+sudo rm -rf /etc/pgbackrest.conf
+```
+
+Create backup location on Backup server
+
+```bash
+sudo mkdir -p /backup
+sudo chown pgbackrest:pgbackrest /backup
+sudo chmod 750 /backup
+```
+
+**On Database Servers**
+
+create logs and configuration files and directory and give permission for **_postgres_** user.
+
+```bash
+sudo mkdir -p -m 770 /var/log/pgbackrest
+sudo chown postgres:postgres /var/log/pgbackrest
+sudo mkdir -p /etc/pgbackrest
+sudo mkdir -p /etc/pgbackrest/conf.d
+sudo touch /etc/pgbackrest/pgbackrest.conf
+sudo chmod 640 /etc/pgbackrest/pgbackrest.conf
+sudo chown postgres:postgres /etc/pgbackrest/pgbackrest.conf
+sudo rm -rf /etc/pgbackrest.conf
+sudo mkdir -p /var/lib/pgbackrest
+sudo chmod 750 /var/lib/pgbackrest
+sudo chown postgres:postgres /var/lib/pgbackrest
 ```
 
 ### 🔑 Step 3: SSH Key Setup (Backup Server → DBs)
@@ -22,29 +86,33 @@ sudo chown backup:backup /var/lib/pgbackrest
 On backup server (192.168.137.103):
 
 ```bash
-sudo -u backup ssh-keygen -t rsa -b 4096 -f /var/lib/pgbackrest/.ssh/id_rsa -N ""
+sudo -u pgbackrest ssh-keygen -t rsa -b 4096 -f /home/pgbackrest/.ssh/id_rsa -N ""
 ```
 
 Copy the key to Primary and Replica:
 
 ```bash
-ssh-copy-id -i /var/lib/pgbackrest/.ssh/id_rsa.pub backup@192.168.137.101
-ssh-copy-id -i /var/lib/pgbackrest/.ssh/id_rsa.pub backup@192.168.137.102
+ssh-copy-id -i /home/pgbackrest/.ssh/id_rsa.pub user@192.168.137.101
+ssh-copy-id -i /home/pgbackrest/.ssh/id_rsa.pub user@192.168.137.102
 ```
 
 If ssh-copy-id command not work, transfer keys manually,
 from backup server copy content of public ssh key
 
 ```bash
-sudo -u backup cat /var/lib/pgbackrest/.ssh/id_rsa.pub
+sudo -u pgbackrest cat /home/pgbackrest/.ssh/id_rsa.pub
 ```
 
 then on database servers
 
 ```bash
 # create new file and paste public key content here
-sudo -u backup nano /var/lib/pgbackrest/.ssh/authorized_keys
+sudo -u postgres nano /var/lib/postgresql/.ssh/authorized_keys
 ```
+
+and do the veris vice, you should generate ssh keys on databases servers and copy public keys on backup server keys under /home/pgbackrest/.ssh/authorized_keys
+
+so backup server can reach dbs servers, and dbs servers can reach backup servers
 
 Ensure SSH works:
 
@@ -169,7 +237,9 @@ postgresql:
 Then reload Patroni:
 
 ```bash
-sudo patronictl reload <cluster-name>
+# sudo patronictl reload <cluster-name>
+sudo patronictl -c /etc/patroni/config.yml reload cn-postgresql-cluster
+
 ```
 
 ### 📦 Step 8: Create the Stanza
