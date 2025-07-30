@@ -682,7 +682,7 @@ etcd3:
 restapi:
   listen: 0.0.0.0:8008
   connect_address: 192.168.137.101:8008  # IP for node2's REST API
-  certfile: /var/lib/postgresql/ssl/server.pem
+  certfile: /var/lib/postgresql/ssl/primary-restapi.pem
   cafile: /etc/etcd/ssl/ca.crt
 
 bootstrap:
@@ -745,7 +745,7 @@ etcd3:
 restapi:
   listen: 0.0.0.0:8008
   connect_address: 192.168.137.102:8008  # IP for node3's REST API
-  certfile: /var/lib/postgresql/ssl/server.pem
+  certfile: /var/lib/postgresql/ssl/standby-restapi.pem
   cafile: /etc/etcd/ssl/ca.crt
 
 bootstrap:
