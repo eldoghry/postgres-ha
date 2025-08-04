@@ -871,7 +871,7 @@ You can check state of current environment using http://192.168.137.100:7000/sta
 
 ## Backup using pgbackrest tool
 
-Please check the [pgbackrest configuration](./backup/readme.md).
+Please check the [pgbackrest configuration](./pgbackrest/readme.md).
 
 ## 🔍 Useful Monitoring & Debugging Commands
 

@@ -227,6 +227,7 @@ postgresql:
     wal_level: replica
     archive_mode: "on"
     archive_command: "pgbackrest --stanza=cn-db archive-push %p"
+    restore_command: "pgbackrest --stanza=cn-db archive-get %f %p"
     max_wal_senders: 10
     wal_keep_size: 256MB
     archive_timeout: 60
@@ -326,3 +327,12 @@ add
 0 2 * * 1-6 pgbackrest --stanza=cn-db --type=diff backup
 
 ```
+
+### 💾 Restore data
+
+## Please check the following [Restore Documentation](./restore-data.md)
+
+---
+
+psql -U postgres -c "SHOW data_directory;"
+psql -U postgres -c "SHOW archive_command;"
