@@ -36,7 +36,7 @@ On all nodes, remove the PostgreSQL data directories to prepare for the restore:
 ```bash
 # Note: some pg version have different data directory
 #  you can find it vi running psql -h 192.168.137.101 -U postgres -c "show data_directory;"
-rm -rf /var/lib/postgresql/data
+sudo rm -rf /var/lib/postgresql/data
 ```
 
 #### 4. Configure Patroni for PITR Bootstrap
@@ -44,6 +44,10 @@ rm -rf /var/lib/postgresql/data
 Also on all db nodes
 
 Edit the Patroni configuration file (/etc/patroni/config.yml) on all nodes to include a custom bootstrap method for pgBackRest. Add or modify the bootstrap section:
+
+```bash
+sudo nano /etc/patroni/config.yml
+```
 
 we should remove or comment the following
 
@@ -111,7 +115,7 @@ Patroni will execute the custom bootstrap script on the leader node, restoring t
 Check the Patroni cluster status:
 
 ```bash
-patronictl -c /etc/patroni/patroni.yml list
+sudo patronictl -c /etc/patroni/config.yml list
 ```
 
 Ensure all nodes are running (one leader, others as replicas).

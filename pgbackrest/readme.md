@@ -84,8 +84,8 @@ sudo -u pgbackrest ssh-keygen -t rsa -b 4096 -f /home/pgbackrest/.ssh/id_rsa -N 
 Copy the key to Primary and Replica:
 
 ```bash
-ssh-copy-id -i /home/pgbackrest/.ssh/id_rsa.pub user@192.168.137.101
-ssh-copy-id -i /home/pgbackrest/.ssh/id_rsa.pub user@192.168.137.102
+ssh-copy-id -i /home/pgbackrest/.ssh/id_rsa.pub postgres@192.168.137.101
+ssh-copy-id -i /home/pgbackrest/.ssh/id_rsa.pub postgres@192.168.137.102
 ```
 
 If ssh-copy-id command not work, transfer keys manually,
@@ -109,8 +109,8 @@ so backup server can reach dbs servers, and dbs servers can reach backup servers
 Ensure SSH works:
 
 ```bash
-sudo -u backup ssh backup@192.168.137.101 hostname
-sudo -u backup ssh backup@192.168.137.102 hostname
+sudo -u pgbackrest ssh postgres@192.168.137.101 hostname
+sudo -u pgbackrest ssh postgres@192.168.137.102 hostname
 ```
 
 **Important Notes:**
