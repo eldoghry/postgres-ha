@@ -528,6 +528,8 @@ sudo etcdctl \
 
 ## PostgreSQL and Patroni
 
+**Important** patroni delete current postgres data, so make sure you work in new **empty** instance, if you want to install on existing instance make sure that you take backup from your data first
+
 Once this is all set up and working, we can now configure postgres and patroni.
 
 We need to create some dirs for postgres
@@ -655,7 +657,7 @@ cat primary-restapi.crt primary-restapi.key > primary-restapi.pem
 openssl x509 -in primary-restapi.pem -text -noout | grep -A1 "Subject Alternative Name"
 ```
 
-then move pem files, key and crt under /var/lib/postgresql/ssl and change permissions.
+then move pem files, key and crt under /var/lib/postgresql/ssl and change permissions (owner postgres and permissions 600).
 
 Create a config file and edit
 
@@ -663,7 +665,7 @@ Create a config file and edit
 sudo nano /etc/patroni/config.yml
 ```
 
-then on each node add the following config with changing apporpiate congif
+then on each node add the following config with changing appropriate config
 
 Node 2
 

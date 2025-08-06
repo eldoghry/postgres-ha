@@ -5,10 +5,18 @@ As we integrate pgbackrest with patroni, Patroni service will be responsible for
 
 I can restore on of the following
 
-1. specific pgBackRest backup (e.g., a full, differential, or incremental backup identified by its backup label, such as 20250803-140000F)
+1. specific pgBackRest backup by Id (e.g., a full, differential, or incremental backup identified by its backup label, such as 20250803-140000F)
 2. PITR restore based on specific time
 
-Below is the steps to do PITR restore process
+#### 📌 Note:
+
+if you restore with time you can use utc or you local time
+
+    --target="2025-08-06 16:09:30+03" This is 16:09:30 in +03 timezone, which is: 2025-08-06 13:09:30 UTC
+
+    (safer) --target="2025-08-06 16:09:30" use utc
+
+Below is the steps to do **PITR** restore process
 
 #### 1. Stop patroni in all db instance (important)
 
@@ -69,7 +77,7 @@ bootstrap:
     no_params: False
     recovery_conf:
       recovery_target: time
-      recovery_target_time: "2025-08-03 14:24:00+03" # replace with you target timestamp you want to restore it
+      recovery_target_time: "2025-08-03 14:24:00" # replace with you target timestamp you want to restore it
       recovery_target_action: promote
       restore_command: pgbackrest --stanza=cluster_1 archive-get %f "%p" # make sure stanza match one of pgbackrest configuration
 ```
@@ -87,8 +95,8 @@ add the following on the script, **_don't forget_** change time and stanza name
 
 ```bash
 #!/bin/sh
-mkdir -p /var/lib/pgsql/13/data
-pgbackrest --stanza=cluster_1 --log-level-console=info --delta --type=time "--target=2025-08-03 14:24:00+03" --target-action=promote restore
+mkdir -p /var/lib/postgresql/data
+pgbackrest --stanza=cluster_1 --log-level-console=info --delta --type=time "--target=2025-08-03 14:24:00" --target-action=promote restore
 ```
 
 change permissions and make it executable
@@ -98,15 +106,23 @@ sudo chown postgres:postgres /var/lib/postgresql/custom_bootstrap.sh
 sudo chmod +x /var/lib/postgresql/custom_bootstrap.sh
 ```
 
-#### 6. Start Patroni on All Nodes
+#### 6. Start Patroni
 
-Start Patroni on each node:
+Start Patroni on first node and wait until become leader:
 
 ```bash
 sudo systemctl start patroni
 ```
 
 Patroni will execute the custom bootstrap script on the leader node, restoring the database to the specified timestamp using pgBackRest. The leader will then initialize, and replicas will sync via pgBackRest or basebackup (as configured in create_replica_methods).
+
+check logs from the following
+
+```bash
+sudo  journalctl -u patroni -f
+```
+
+after first node become leader, start patroni on the remaining nodes
 
 ---
 
@@ -128,7 +144,14 @@ sudo -u postgres psql -c "SELECT * FROM important_table;"
 
 Confirm the table or data exists as expected.
 
-Check PostgreSQL logs (e.g., /var/log/postgresql/postgresql-13-main.log) for recovery details, ensuring messages like “recovery stopping before…” and “last completed transaction…” appear.
+Check PostgreSQL logs
+
+```bash
+sudo journalctl -u patroni -f -n 50
+
+tail -f /var/log/postgresql/postgresql-16-main.log
+# recovery details, ensuring messages like “recovery stopping before…” and “last completed transaction…” appear.
+```
 
 #### 8. Reconfigure bootstrap on Patroni config
 
@@ -160,7 +183,7 @@ bootstrap:
 #     no_params: False
 #     recovery_conf:
 #       recovery_target: time
-#       recovery_target_time: "2025-08-03 14:24:00+03" # replace with you target timestamp you want to restore it
+#       recovery_target_time: "2025-08-03 14:24:00" # replace with you target timestamp you want to restore it
 #       recovery_target_action: promote
 #       restore_command: pgbackrest --stanza=cluster_1 archive-get %f "%p" # make sure stanza match one of pgbackrest configuration
 ```
@@ -215,7 +238,7 @@ bootstrap:
   #    no_params: False
   #    recovery_conf:
   #      recovery_target: time
-  #      recovery_target_time: '2025-08-03 07:15:00+03'
+  #      recovery_target_time: '2025-08-03 07:15:00'
   #      recovery_target_action: promote
   #      restore_command: pgbackrest --stanza=cn-db archive-get %f "%p"
   initdb:
@@ -293,6 +316,7 @@ make sure to write correct stanza and set backup label from pgbackrest info --st
 #!/bin/sh
 mkdir -p /var/lib/postgresql/data
 pgbackrest --stanza=cn-db --log-level-console=info --delta --set=20250803-140000F --target-action=promote restore
+
 ```
 
 ---
@@ -309,14 +333,13 @@ The entire PostgreSQL instance or server is down or lost due to disk failure, cr
 
 sudo -u postgres pgbackrest --stanza=cn-db --type=time --target="2025-08-03 07:15:00" restore
 
-sudo -u postgres pgbackrest --stanza=cn-db --type=time --target="2025-08-03 07:15:00" restore
-
 ---
 
 helper commands
 
 ```bash
 ps aux | grep postgres
+ss -tulpn | grep 5432
 sudo -u postgres psql -c "SELECT pg_is_in_recovery();" # should be false
 sudo etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ssl/ca.crt --cert=/etc/etcd/ssl/etcd-node3.crt --key=/etc/etcd/ssl/etcd-node3.key del /service/cn-postgresql-cluster --prefix
 sudo etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ssl/ca.crt --cert=/etc/etcd/ssl/etcd-node3.crt --key=/etc/etcd/ssl/etcd-node3.key get /service/--prefix
