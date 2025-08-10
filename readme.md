@@ -39,7 +39,7 @@ This project demonstrates how to set up a **highly available PostgreSQL cluster*
 
 ## Architecture
 
-![Architecture Diagram](https://drive.google.com/uc?export=view&id=155IO3dzWuSb8fDvyBupR28DeFu5PerMH)
+![Architecture Diagram](https://drive.google.com/uc?export=view&id=1GuG4yFOPeboQPtDCRcQEIHtMPJ5AdUTT)
 
 - **_Clients_**: Applications connect to the database through HAProxy.
 
