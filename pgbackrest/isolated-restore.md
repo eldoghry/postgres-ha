@@ -189,6 +189,14 @@ sudo cat /var/log/postgresql/postgresql-<version>-main.log
 
 ## Create Restore script
 
+create restore log files location and update permissions.
+
+```bash
+sudo mkdir -p /var/log/pgbackrest-tests
+sudo chown someuser:root /var/log/pgbackrest-tests
+sudo chmod 770 /var/log/pgbackrest-tests
+```
+
 create script
 
 ```bash
@@ -199,48 +207,77 @@ and add the following
 
 ```bash
 #!/bin/bash
+set -euo pipefail
+
 STANZA="sarwa-db"
-DATA_PATH="/var/lib/postgresql/data"
-LOG_FILE="/var/log/pgbackrest_restore.log"
-BACKUP_SET="20250810-103436F"  # Update to latest or remove for auto-latest
+DATA_PATH="/var/lib/postgresql/16/main"
+LOG_DIR="/var/log/pgbackrest-tests"
+LOG_FILE="$LOG_DIR/pgbackrest_restore_$(date +%F_%H-%M-%S).log"
+DB_NAME="sarwa"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "=== Starting pgBackRest restore test: $(date) ==="
 
 # Stop PostgreSQL
+echo "Stopping PostgreSQL..."
 sudo systemctl stop postgresql
+sleep 5
 
-# Clean data directory
-sudo -u postgres rm -rf $DATA_PATH/*
+# Safety checks
+if systemctl is-active --quiet postgresql; then
+    echo "ERROR: PostgreSQL still running. Aborting."
+    exit 1
+fi
+
+if [ ! -d "$DATA_PATH" ]; then
+    echo "ERROR: Data directory $DATA_PATH does not exist."
+    exit 1
+fi
+
+echo "Deleting old data directory..."
+sudo -u postgres rm -rf "$DATA_PATH"/*
+echo "Data directory cleared."
+
+# Ensure backups exist
+echo "Checking backups..."
+sudo -u postgres pgbackrest --stanza=$STANZA info
 
 # Restore
-sudo -u postgres pgbackrest --stanza=$STANZA --delta --set=$BACKUP_SET restore >> $LOG_FILE 2>&1
+echo "Restoring latest backup..."
+sudo -u postgres pgbackrest --stanza=$STANZA --delta restore
 
 # Start PostgreSQL
+echo "Starting PostgreSQL..."
 sudo systemctl start postgresql
 sleep 10
 
-# Check PostgreSQL status
-sudo systemctl status postgresql > /tmp/pg_status.txt
-if grep -q "active (running)" /tmp/pg_status.txt; then
-    echo "PostgreSQL started successfully" >> $LOG_FILE
-else
-    echo "PostgreSQL failed to start" >> $LOG_FILE
-    sudo cat /var/log/postgresql/postgresql-<version>-main.log >> $LOG_FILE
+if ! pg_isready -q; then
+    echo "ERROR: PostgreSQL failed to start."
+    sudo -u postgres cat /var/log/postgresql/postgresql-16-main.log
     exit 1
 fi
 
-# Verify databases
-sudo -u postgres psql -c "SELECT datname FROM pg_database;" > /tmp/db_list.txt
-if grep -q "sarwa" /tmp/db_list.txt; then
-    echo "Success: sarwa database present" >> $LOG_FILE
-    sudo -u postgres psql -d sarwa -c "\dt" >> $LOG_FILE
+echo "PostgreSQL started successfully."
+
+# Verify database exists
+echo "Verifying sarwa database..."
+if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw sarwa; then
+    echo "✅ Success: $DB_NAME database found."
+    sudo -u postgres psql -d "$DB_NAME" -c "\dt"
 else
-    echo "Failure: sarwa database missing" >> $LOG_FILE
-    sudo -u postgres pgbackrest --stanza=$STANZA --set=$BACKUP_SET info >> $LOG_FILE
-    sudo cat /var/log/postgresql/postgresql-<version>-main.log >> $LOG_FILE
+    echo "❌ ERROR: $DB_NAME database missing!"
     exit 1
 fi
 
-# Stop PostgreSQL
-sudo systemctl stop postgresql
+echo "=== Restore test completed successfully: $(date) ==="
 ```
 
 Schedule via cron: **_0 2 _ _ 0 .verify_restore.sh_**
+
+```bash
+sudo crontab -u someuser -e
+
+### add the following
+0 2 * * 0 /path/to/restore_test.sh
+```
