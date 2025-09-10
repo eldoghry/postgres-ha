@@ -694,6 +694,8 @@ bootstrap:
     retry_timeout: 10
     maximum_lag_on_failover: 1048576  # Failover parameters
     postgresql:
+        use_pg_rewind: true
+        use_slots: true
         parameters:
             ssl: 'on'  # Enable SSL
             ssl_cert_file: /var/lib/postgresql/ssl/server.crt  # PostgreSQL server certificate
@@ -757,6 +759,8 @@ bootstrap:
     retry_timeout: 10
     maximum_lag_on_failover: 1048576  # Failover parameters
     postgresql:
+        use_pg_rewind: true
+        use_slots: true
         parameters:
             ssl: 'on'  # Enable SSL
             ssl_cert_file: /var/lib/postgresql/ssl/server.crt  # PostgreSQL server certificate

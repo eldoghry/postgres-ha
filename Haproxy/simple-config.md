@@ -25,3 +25,10 @@ To check current patroni leader run the following from any postgres node
 ```bash
 sudo patronictl -c /etc/patroni/config.yml list
 ```
+
+```bash
+curl -I --cacert /etc/etcd/ssl/ca.crt https://127.0.0.1:8008/primary
+# if leader: HTTP/1.0 200 OK
+# if not leader: HTTP/1.0 503 Service Unavailable
+# you can check /primary /replica /leader ...
+```
