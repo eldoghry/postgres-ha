@@ -104,6 +104,11 @@ sudo -u postgres nano /var/lib/postgresql/.ssh/authorized_keys
 
 and do the vers vice, you should generate ssh keys on databases servers and copy public keys on backup server keys under /home/pgbackrest/.ssh/authorized_keys
 
+```bash
+# ON EACH DATABASE SERVERS
+sudo -u postgres ssh-keygen -t rsa -b 4096 -f /var/lib/postgresql/.ssh/id_rsa -N ""
+```
+
 so backup server can reach dbs servers, and dbs servers can reach backup servers
 
 Ensure SSH works:
@@ -122,6 +127,14 @@ chmod 600 ~/.ssh/authorized_keys
 ```
 
 Don't share your private key.
+
+If not work check sshd config
+
+```bash
+sudo nano /etc/ssh/sshd_config
+## check AllowGroups, PubkeyAuthentication yes
+# AuthorizedKeysFile .ssh/authorized_keys
+```
 
 ### 📁 Step 4: Create Backup Storage Directory
 
