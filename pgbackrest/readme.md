@@ -250,7 +250,9 @@ Then reload Patroni:
 
 ```bash
 # sudo patronictl reload <cluster-name>
-sudo patronictl -c /etc/patroni/config.yml reload cn-postgresql-cluster
+sudo -u postgres patronictl -c /etc/patroni/config.yml reload cn-postgresql-cluster
+sudo -u postgres patronictl -c /etc/patroni/config.yml list
+sudo -u postgres patronictl -c /etc/patroni/config.yml restart cn-postgresql-cluster
 
 ```
 
@@ -334,11 +336,17 @@ add
 
 ```bash
 # Full backup on Sunday at 1 AM
-0 1 * * 0 pgbackrest --stanza=cn-db --type=full backup
+# Weekly full backup: Thursday at 11:00 PM UTC (Friday 2:00 AM EEST)
+0 23 * * 4 sudo -u pgbackrest pgbackrest --stanza=cn-backup backup --type=full
 
-# Differential backup daily at 2 AM
-0 2 * * 1-6 pgbackrest --stanza=cn-db --type=diff backup
+# Daily incremental backup: Friday–Wednesday at 11:00 PM UTC (Saturday–Thursday 2:00 AM EEST)
+0 23 * * 0-3,5-6 sudo -u pgbackrest pgbackrest --stanza=cn-backup backup --type=incr
 
+# Intra-day incremental backup: Daily at 11:00 AM UTC (Daily 2:00 PM EEST)
+0 11 * * * sudo -u pgbackrest pgbackrest --stanza=cn-backup --type=incr
+
+# Daily expire: Daily at 12:00 AM UTC (Daily 3:00 AM EEST)
+0 0 * * * sudo -u pgbackrest pgbackrest --stanza=cn-backup expire
 ```
 
 ### 💾 Restore data
@@ -347,5 +355,7 @@ add
 
 ---
 
+```bash
 psql -U postgres -c "SHOW data_directory;"
 psql -U postgres -c "SHOW archive_command;"
+```
