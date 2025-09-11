@@ -155,16 +155,20 @@ sudo nano /etc/pgbackrest/pgbackrest.conf
 ```
 
 Copy the following, please make sure to remove comments first to avoid errors later
+Note yaml not accept comment beside command, make it above.
 
 ```ini
 [global]
 repo1-path=/backup #backup location on backup server
 repo1-type=posix
-repo1-retention-full=7
-repo1-retention-diff=14
+repo1-retention-full=4
+repo1-retention-diff=7
+repo1-retention-archive-type=full
+repo1-retention-archive=2592000
 start-fast=y
 log-level-console=info
 log-level-file=debug
+process-max=4
 
 [global:archive-push]
 compress-type=zst
