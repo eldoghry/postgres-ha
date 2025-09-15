@@ -88,19 +88,19 @@ sudo apt-get install -y pgbouncer
 
 Configure PgBouncer _(/etc/pgbouncer/pgbouncer.ini)_
 
-Example _(assuming HAProxy listens on 127.0.0.1:**6432** for leader)_:
+Example _(assuming HAProxy listens on 127.0.0.1:**5000** for leader)_:
 
 ```bash
 [databases]
 # to allow access only for specific databases, you can create record for each one.
 
-#contact_rewards = host=127.0.0.1 port=6432 dbname=contact_rewards
+#contact_rewards = host=127.0.0.1 port=5000 dbname=contact_rewards
 
 # Wildcard to accept any database name
-* = host=127.0.0.1 port=6432
+* = host=127.0.0.1 port=5000
 
 [pgbouncer]
-listen_port = 5000
+listen_port = 6432
 listen_addr = 0.0.0.0
 
 auth_type = md5
