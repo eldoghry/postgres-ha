@@ -19,6 +19,7 @@ This repository provides a robust solution for achieving high availability (HA) 
       - [Verifying Our Postgres Cluster](#verifying-our-postgres-cluster)
       - [Editing your pg_hba after bootstrapping](#editing-your-pg_hba-after-bootstrapping)
   - [HAProxy](#haproxy)
+  - [Pgbouncer](#pgbouncer)
   - [Backup using pgbackrest tool](#backup-using-pgbackrest-tool)
   - [🔍 Useful Monitoring \& Debugging Commands](#-useful-monitoring--debugging-commands)
     - [👁️ Patroni](#️-patroni)
@@ -875,9 +876,15 @@ sudo tail -f /var/log/syslog | grep haproxy
 
 You can check state of current environment using http://192.168.137.100:7000/stats
 
+## Pgbouncer
+
+PgBouncer is a lightweight PostgreSQL connection pooler.
+
+for more details please check the following documantion [Pgbouncer documenation](./pgbouncer/readme.md).
+
 ## Backup using pgbackrest tool
 
-Please check the [pgbackrest configuration](./pgbackrest/readme.md).
+Please check the following documantion [pgbackrest configuration](./pgbackrest/readme.md).
 
 ## 🔍 Useful Monitoring & Debugging Commands
 
