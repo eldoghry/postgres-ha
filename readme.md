@@ -831,6 +831,8 @@ We can test the patroni endpoint to see who is leader
 ## this will result json, check role value should be "primary" | "replica"
 curl -k https://192.168.137.101:8008/primary
 curl -k https://192.168.137.102:8008/primary
+curl -K https://127.0.0.1:8008/primary
+curl -I https://127.0.0.1:8008/primary --cacert /etc/etcd/ssl/ca.crt
 ```
 
 #### Editing your pg_hba after bootstrapping
@@ -862,6 +864,13 @@ sudo nano /etc/haproxy/haproxy.cfg
 
 for HAproxy configuration please use one of the following [simple](./Haproxy/simple-config.md) | [advanced](./Haproxy/advanced-config.md)
 
+check configration
+
+```bash
+sudo haproxy -c -f /etc/haproxy/haproxy.cfg
+
+```
+
 start haproxy
 
 ```bash
@@ -872,6 +881,7 @@ check logs
 
 ```bash
 sudo tail -f /var/log/syslog | grep haproxy
+sudo journalctl -u haproxy
 ```
 
 You can check state of current environment using http://192.168.137.100:7000/stats

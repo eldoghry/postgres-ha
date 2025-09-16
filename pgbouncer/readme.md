@@ -129,6 +129,12 @@ sudo systemctl enable pgbouncer
 sudo systemctl start pgbouncer
 ```
 
+check logs
+
+```bash
+sudo journalctl -u pgbouncer -f
+```
+
 Connect NestJS backend to PgBouncer
 
 ```bash
