@@ -333,24 +333,34 @@ Make sure the backup is stored under /backup.
 Edit the crontab:
 
 ```bash
-sudo crontab -u backup -e
+sudo -u pgbackrest crontab -e
 ```
 
-add
+add the following
+
+note: no need to write sudo -u pgbackrest [CMD] as we open crontab as pgbackrest user _sudo -u pgbackrest crontab -e_
 
 ```bash
-# Full backup on Sunday at 1 AM
 # Weekly full backup: Thursday at 11:00 PM UTC (Friday 2:00 AM EEST)
-0 23 * * 4 sudo -u pgbackrest pgbackrest --stanza=cn-backup backup --type=full
+0 23 * * 4 pgbackrest --stanza=cn-backup backup --type=full >> /var/log/pgbackrest/cron_full.log 2>&1
 
 # Daily incremental backup: Friday–Wednesday at 11:00 PM UTC (Saturday–Thursday 2:00 AM EEST)
-0 23 * * 0-3,5-6 sudo -u pgbackrest pgbackrest --stanza=cn-backup backup --type=incr
+0 23 * * 0-3,5-6 pgbackrest --stanza=cn-backup backup --type=incr >> /var/log/pgbackrest/cron_incr.log 2>&1
 
 # Intra-day incremental backup: Daily at 11:00 AM UTC (Daily 2:00 PM EEST)
-0 11 * * * sudo -u pgbackrest pgbackrest --stanza=cn-backup --type=incr
+0 11 * * * pgbackrest --stanza=cn-backup backup --type=incr >> /var/log/pgbackrest/cron_intra.log 2>&1
 
 # Daily expire: Daily at 12:00 AM UTC (Daily 3:00 AM EEST)
-0 0 * * * sudo -u pgbackrest pgbackrest --stanza=cn-backup expire
+#0 0 * * * sudo -u pgbackrest bash -c "pgbackrest --stanza=cn-backup expire >> /var/log/pgbackrest/cron_expire.log 2>&1"
+0 0 * * * pgbackrest --stanza=cn-backup expire >> /var/log/pgbackrest/cron_expire.log 2>&1
+```
+
+to check cron logs
+
+```bash
+## to follow logs
+sudo journalctl -u cron -u crond -u cronie -f
+sudo journalctl -u cron -u crond -u cronie -xe
 ```
 
 ### 💾 Restore data
