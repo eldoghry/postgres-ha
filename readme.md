@@ -356,6 +356,8 @@ ETCD_PEER_CLIENT_CERT_AUTH="true"
 ETCD_PEER_TRUSTED_CA_FILE="/etc/etcd/ssl/ca.crt"
 ETCD_PEER_CERT_FILE="/etc/etcd/ssl/etcd-node1.crt"
 ETCD_PEER_KEY_FILE="/etc/etcd/ssl/etcd-node1.key"
+ETCD_HEARTBEAT_INTERVAL=500
+ETCD_ELECTION_TIMEOUT=5000
 ```
 
 Node 2
@@ -378,6 +380,8 @@ ETCD_PEER_CLIENT_CERT_AUTH="true"
 ETCD_PEER_TRUSTED_CA_FILE="/etc/etcd/ssl/ca.crt"
 ETCD_PEER_CERT_FILE="/etc/etcd/ssl/etcd-node2.crt"
 ETCD_PEER_KEY_FILE="/etc/etcd/ssl/etcd-node2.key"
+ETCD_HEARTBEAT_INTERVAL=500
+ETCD_ELECTION_TIMEOUT=5000
 ```
 
 Node 3
@@ -400,6 +404,8 @@ ETCD_PEER_CLIENT_CERT_AUTH="true"
 ETCD_PEER_TRUSTED_CA_FILE="/etc/etcd/ssl/ca.crt"
 ETCD_PEER_CERT_FILE="/etc/etcd/ssl/etcd-node3.crt"
 ETCD_PEER_KEY_FILE="/etc/etcd/ssl/etcd-node3.key"
+ETCD_HEARTBEAT_INTERVAL=500
+ETCD_ELECTION_TIMEOUT=5000
 ```
 
 Now let’s create a service for etcd on all 3 nodes
@@ -692,7 +698,7 @@ bootstrap:
   dcs:
     ttl: 30
     loop_wait: 10
-    retry_timeout: 10
+    retry_timeout: 30
     maximum_lag_on_failover: 1048576  # Failover parameters
     postgresql:
         use_pg_rewind: true
@@ -757,7 +763,7 @@ bootstrap:
   dcs:
     ttl: 30
     loop_wait: 10
-    retry_timeout: 10
+    retry_timeout: 30
     maximum_lag_on_failover: 1048576  # Failover parameters
     postgresql:
         use_pg_rewind: true
