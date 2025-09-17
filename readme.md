@@ -730,8 +730,8 @@ postgresql:
       username: replicator
       password: replicatorpassword  # Replication password - be sure to change
   parameters:
-    max_connections: 100
-    shared_buffers: 256MB
+    max_connections: 100 # adjust it based on workload
+    shared_buffers: 256MB # should use 25% - 40% from server memory size example user 4GB for srv with memory 16GB
 
 tags:
   nofailover: false
@@ -796,12 +796,18 @@ postgresql:
       password: replicatorpassword  # Replication password - be sure to change
   parameters:
     max_connections: 100
-    shared_buffers: 256MB
+    shared_buffers: 256MB # should use 25% - 40% from server memory size example user 4GB for srv with memory 16GB
 
 tags:
   nofailover: false
   noloadbalance: false
   clonefrom: false
+```
+
+to validate patroni config
+
+```bash
+sudo -u postgres patroni --validate-config /etc/patroni/config.yml -i
 ```
 
 starting patroni
