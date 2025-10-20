@@ -281,3 +281,15 @@ sudo crontab -u someuser -e
 ### add the following
 0 2 * * 0 /path/to/restore_test.sh
 ```
+
+to manually start postgres
+
+```bash
+sudo -u postgres /usr/lib/postgresql/17/bin/postgres -D /var/lib/postgresql/17/main
+```
+
+make sure restore server not running old instance of postgres
+
+```bash
+ps -ef | grep postgres
+```
