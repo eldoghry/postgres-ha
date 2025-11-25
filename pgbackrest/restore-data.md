@@ -317,6 +317,14 @@ make sure to write correct stanza and set backup label from pgbackrest info --st
 mkdir -p /var/lib/postgresql/data
 pgbackrest --stanza=cn-db --log-level-console=info --delta --set=20250803-140000F --target-action=promote restore
 
+
+## in case mismatching on timeline and you want to enforce specific timeline
+#pgbackrest --stanza=cn-db --log-level-console=info --target-timeline=current restore
+
+#choose specific timeline
+#pgbackrest --stanza=cn-db --log-level-console=info --target-timeline=33 restore
+
+## note timeline on pgbackrest is in hexa format convert it to decimal before using it in restore command
 ```
 
 ---
@@ -348,3 +356,9 @@ sudo etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ssl/ca.crt --
 sudo -u postgres /usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/postgresql/data start
 
 ```
+
+---
+
+#### Tips
+
+in case you have trouble to restore, try first to restore on isolated machine and if it work, try to restore manually on some node, then join it to new cluster
