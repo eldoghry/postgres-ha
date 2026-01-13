@@ -293,3 +293,11 @@ make sure restore server not running old instance of postgres
 ```bash
 ps -ef | grep postgres
 ```
+
+---
+
+💡 Step 2: Use the --set and --target-action=promote OptionsWhen restoring a backup from a cluster (like $\text{Patroni}$) that was constantly creating new timelines (due to failovers or promotions), the most reliable method is to explicitly tell $\text{pgBackRest}$ which backup to restore and what to do with the restored instance.Since your goal is to restore the latest backup and immediately promote it to be a new primary on the isolated machine, use the --set and --target-action=promote options.Why --target-action=promote?This option tells $\text{pgBackRest}$ to add a standby.signal file and a recovery.signal file to the $\text{PGDATA}$ directory, but it also creates the necessary $\text{PostgreSQL}$ restore configuration files that will immediately promote the instance to a new primary when it's started for the first time. This ensures you start on a new, clean timeline.
+
+```bash
+sudo -u postgres pgbackrest --stanza="cn-backup" --type=immediate --target-action=promote restore
+```

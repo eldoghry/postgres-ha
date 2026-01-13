@@ -131,3 +131,133 @@ Recommended approach for production:
 maximum_lag_on_failover: 1048576  # in bytes (1 MB)
 maximum_lag_on_failover: 67108864 # in bytes (64 MB) recommended for current setup 2 nodes only on cluster
 ```
+
+## Update Config to reduce Timeline divergence issue
+
+allow pg_rewind option on config, update yaml config with the following
+
+```yaml
+bootstrap:
+  dcs:
+    ...
+    failsafe_mode: true #New
+    ttl: 60  # NEW: Increased from 30 for better handling of network delays
+    loop_wait: 15 #NEW: Increased from 10
+    retry_timeout: 30 #NEW: Increased from 1
+
+postgresql:
+  ...
+  use_pg_rewind: true  # New: Enable rewind for divergence
+  remove_data_directory_on_diverged_timelines: true  # New: Fallback to remove/restore on irreconcilable issues
+  parameters:
+    ...
+    wal_log_hints: on # New: Required for pg_rewind
+```
+
+example of complete config
+
+```yaml
+scope: cn-postgresql-cluster
+namespace: /service/
+name: cn-db02  # node2
+
+etcd3:
+   hosts: 192.168.137.100:2379,192.168.137.101:2379,192.168.137.102:2379 # etcd cluster nodes
+  protocol: https
+  cacert: /etc/etcd/ssl/ca.crt
+  cert: /etc/etcd/ssl/etcd-db02.crt # node2's etcd certificate
+  key: /etc/etcd/ssl/etcd-db02.key # node2's etcd key
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: 192.168.137.101:8008 # IP for node1's REST API
+  certfile: /var/lib/postgresql/ssl/patroni-db02-rest.pem
+  cafile: /etc/etcd/ssl/ca.crt
+
+bootstrap:
+  #method: pgbackrest
+  #pgbackrest:
+    #command: /var/lib/postgresql/custom_bootstrap.sh
+    #keep_existing_recovery_conf: False
+    #no_params: False
+    #recovery_conf:
+      #recovery_target: time
+      #recovery_target_time: "2025-11-23 23:30:00"
+      #recovery_target_action: promote
+      #restore_command: pgbackrest --stanza=cn-backup archive-get %f "%p"
+
+  dcs:
+    failsafe_mode: true #New
+    ttl: 60  # NEW: Increased from 30 for better handling of network delays
+    loop_wait: 15 #NEW: Increased from 10
+    retry_timeout: 30 #NEW: Increased from 10
+    maximum_lag_on_failover: 1048576  # Failover parameters
+    postgresql:
+        parameters:
+            ssl: 'on'  # Enable SSL
+            ssl_cert_file: /var/lib/postgresql/ssl/server.crt  # PostgreSQL server certificate
+            ssl_key_file: /var/lib/postgresql/ssl/server.key  # PostgreSQL server key
+            ssl_ca_file: /var/lib/postgresql/ssl/ca.crt
+        pg_hba:  # Access rules
+        - local all all trust
+        - hostssl replication replicator 127.0.0.1/32 md5
+        - hostssl replication replicator 10.172.50.20/32 md5
+        - hostssl replication replicator 10.172.50.19/32 md5
+        - host all postgres 10.172.50.22/32 md5
+        - hostssl all all 127.0.0.1/32 md5
+        - hostnossl all all 0.0.0.0/0 reject
+        - hostssl all all 0.0.0.0/0 md5 clientcert=verify-ca
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: 10.172.50.19:5432 # IP for node2's PostgreSQL
+  data_dir: /var/lib/postgresql/17/main  # Data directory for PostgreSQL 17
+  bin_dir: /usr/lib/postgresql/17/bin  # Binary directory for PostgreSQL 17
+  use_pg_rewind: true  # New: Enable rewind for divergence
+  remove_data_directory_on_diverged_timelines: true  # New: Fallback to remove/restore on irreconcilable issues
+  authentication:
+    superuser:
+      username: postgres
+      password: someStrongPassword  # Superuser password - be sure to change
+    replication:
+      username: replicator
+      password: someStrongPassword # Replication password - be sure to change
+  parameters:
+    max_connections: 205
+    shared_buffers: 8GB
+    work_mem: 32MB # controls per-query memory.
+    maintenance_work_mem: 1GB # Important for VACUUM/CREATE INDEX
+    effective_cache_size: 24GB # tells optimizer how much OS cache is available.
+    wal_level: replica
+    wal_log_hints: on # New: Required for pg_rewind
+    max_wal_senders: 10
+    wal_keep_size: 2GB
+    max_replication_slots: 10
+    archive_mode: "on"
+    archive_command: "pgbackrest --stanza=cn-backup archive-push %p"
+    restore_command: "pgbackrest --stanza=cn-backup archive-get %f %p"
+    archive_timeout: 300
+    logging_collector: on
+    log_directory: 'pg_log'
+    log_filename: 'postgresql-%a.log'
+    log_rotation_age: 1d
+    log_rotation_size: 100MB
+    log_statement: 'ddl'
+    log_min_duration_statement: 5000
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+```
+
+don't forget from also changing config on DSC by using
+
+```bash
+sudo -su postgres patronictl -c /etc/patroni/config.yml edit-config
+```
+
+after changing config in all machines, restart replica nodes first one by one and switchover one replica to become leader and then restart patroni on old leader machine
